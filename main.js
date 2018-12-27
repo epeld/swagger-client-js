@@ -2,14 +2,14 @@
 const fs = require("fs");
 
 const decamelize = require("decamelize");
-const request = require("request");
+const requestLib = require("request");
 const _ = require("lodash");
 
 const swagger = JSON.parse(fs.readFileSync("swagger.json"));
 
 console.log(JSON.stringify(Object.keys(swagger)));
 
-const myreq = request.defaults({baseUrl: 'http://localhost:3000'});
+const myreq = requestLib.defaults({baseUrl: 'http://localhost:3000'});
 
 const checkArg = (argSpec, arg) => {
   if (argSpec === undefined) {
@@ -33,7 +33,7 @@ const checkArg = (argSpec, arg) => {
   return null;
 };
 
-const httpClient = (req) => {
+const httpClient = (req, request) => {
   const {method, args, path, spec} = req;
   const errors = _.compact(_.zipWith(spec.parameters, args, checkArg));
   if (errors.length) {
@@ -74,7 +74,7 @@ const httpClient = (req) => {
 
   console.log(`Constructed url '${url}', body: ${JSON.stringify(bodyArgs)}`);
   return new Promise((resolve, reject) => {
-    myreq({url, method, form: bodyArgs}, (err, response, body) => {
+    request({url, method, form: bodyArgs}, (err, response, body) => {
       if (err) {
         reject(err);
       } else {
@@ -85,7 +85,15 @@ const httpClient = (req) => {
   });
 };
 
-const generateClient = (swagger) => {
+/**
+ * Constructs a swagger client bound to the given "request-like"-object
+ * (i.e, what you get back from calling request.defaults()).
+ *
+ * @param swagger this is the swagger JSON-structure
+ * @param request (optional) the http client to use. See request.defaults
+ */
+export const generateClient = (swagger, request) => {
+  request = request || requestLib.defaults();
   const client = {};
   _.forEach(swagger.paths, (methods, path) => {
     _.forEach(methods, (spec, method) => {
@@ -100,7 +108,7 @@ const generateClient = (swagger) => {
         const req = {
           method, args, path, spec
         };
-        return httpClient(req);
+        return httpClient(req, request);
       };
       client[name] = f;
       console.log(path, method, name);
