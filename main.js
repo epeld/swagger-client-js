@@ -7,8 +7,6 @@ const _ = require("lodash");
 
 const swagger = JSON.parse(fs.readFileSync("swagger.json"));
 
-console.log(JSON.stringify(Object.keys(swagger)));
-
 const myreq = requestLib.defaults({baseUrl: 'http://localhost:3000'});
 
 const checkArg = (argSpec, arg) => {
