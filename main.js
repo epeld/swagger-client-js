@@ -9,8 +9,80 @@ const swagger = JSON.parse(fs.readFileSync("swagger.json"));
 
 console.log(JSON.stringify(Object.keys(swagger)));
 
+const myreq = request.defaults({baseUrl: 'http://localhost:3000'});
+
+const checkArg = (argSpec, arg) => {
+  if (argSpec === undefined) {
+    return `Superfluous argument: ${JSON.stringify(arg)}`;
+  }
+  // console.log(`Checking argument '${argSpec.name}'...`);
+  if (argSpec.required) {
+    switch(argSpec.type) {
+    case "string":
+      if (typeof arg !== "string") {
+        return `Argument ${argSpec.name} is not a string: ${arg}`;
+      }
+      break;
+
+    default:
+      return `Unsupported argument type '${argSpec.type}'`;
+    }
+  }
+
+  
+  return null;
+};
+
 const httpClient = (req) => {
   const {method, args, path, spec} = req;
+  const errors = _.compact(_.zipWith(spec.parameters, args, checkArg));
+  if (errors.length) {
+    return Promise.reject(`Errors in arg list: ${errors.join('\n')}`);
+  } else {
+    console.log('No argument Errors');
+  }
+
+  const bodyArgs =
+        _.fromPairs(
+          _.compact(
+            _.zipWith(spec.parameters, args,
+                      (p, a) => (p && p.in === "body") ? [p.name, a] : null)
+          )
+        );
+  const pathArgs =
+        _.fromPairs(
+          _.compact(
+            _.zipWith(spec.parameters, args,
+                      (p, a) => (p && p.in === "path") ? [p.name, a] : null)
+          )
+        );
+ 
+  const url = path.split('/').map((part) => {
+    const trimmed = _.trim(part);
+    if (_.startsWith(trimmed, '{') &&
+        _.endsWith(trimmed, '}')) {
+      const argName = trimmed.substring(1, trimmed.length-1);
+      if (!_.has(pathArgs, argName)) {
+        throw new Error(`Internal error: missing path arg '${argName}'`);
+      } else {
+        return pathArgs[argName];
+      }
+    } else {
+      return part;
+    }
+  }).join('/');
+
+  console.log(`Constructed url '${url}', body: ${JSON.stringify(bodyArgs)}`);
+  return new Promise((resolve, reject) => {
+    myreq({url, method, form: bodyArgs}, (err, response, body) => {
+      if (err) {
+        reject(err);
+      } else {
+        // TODO verify response code is in list of responses from spec
+        resolve(body);
+      }
+    });
+  });
 };
 
 const generateClient = (swagger) => {
@@ -28,7 +100,7 @@ const generateClient = (swagger) => {
         const req = {
           method, args, path, spec
         };
-        httpClient(req);
+        return httpClient(req);
       };
       client[name] = f;
       console.log(path, method, name);
@@ -39,4 +111,4 @@ const generateClient = (swagger) => {
 
 
 const client = generateClient(swagger);
-client.create_timer(1, 2, {foo:15});
+client.get_timer('asd').then(console.log).catch(console.error);
