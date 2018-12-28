@@ -2,6 +2,8 @@
 
 Given a *swagger.json*-file, this project will allow you to generate an API client for it *at runtime*.
 
+Note: the library is currently only intended to be used in the backend.
+
 ## How To Use
 
 First, you need to generate the client. This step is described below
@@ -43,3 +45,16 @@ client.get_foo({bar: "mybar", baz: "mybaz", quux: 1234})
 
 Note that, if you don't supply all required arguments an error will be returned explaining what is missing.
 Likewise, if you supply extraneous arguments a similar error will be produced explaining what should be removed.
+
+## Customizing the HTTP Agent
+
+Sometimes a bit of fine-tuning can be required on the HTTP agent. A common example is that a custom HTTP header or
+base path needs to be added to all requests. Since we rely on the npm *request*-library for issuing HTTP requests it
+is possible to achieve this by first customizing the *request* "instance" that will be utilized by the swagger client.
+Here is an example where we configure *request* to use "http://localhost:3000" as *base url*:
+
+```
+const fs = require("fs");
+const request = require("request").defaults({baseUrl: "http://localhost:3000");
+const client = require("thisrepo").generateClient(JSON.parse(fs.readFileSync("swagger.json")), request);
+```
