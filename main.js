@@ -109,8 +109,8 @@ const checkSchema = (swagger, schemaRef, arg) => {
 };
 
 const checkArg = (swagger, argSpec, arg) => {
-  if (argSpec === undefined) {
-    return `Superfluous argument: ${JSON.stringify(arg)}`;
+  if (_.isUndefined(arg) && !argSpec.required) {
+    return null;
   }
   if (argSpec.schema) {
     if (!argSpec.schema['$ref']) {
@@ -128,7 +128,9 @@ const httpClient = (req, request) => {
   const {method, args, path, spec, swagger} = req;
   const params = _.keyBy(spec.parameters, 'name');
 
-  const missing = _.difference(Object.keys(params), Object.keys(args));
+  const optional = _.filter(spec.parameters, (spec) => !spec.required).map(spec => spec.name);
+
+  const missing = _.difference(Object.keys(params), Object.keys(args), optional);
   const superfluous = _.difference(Object.keys(args), Object.keys(params));
   if (missing.length) {
     return Promise.reject(`Missing arguments: "${missing.join('", "')}"`);
@@ -146,9 +148,13 @@ const httpClient = (req, request) => {
 
   const bodyArgNames = _.filter(spec.parameters, (spec) => spec.in === "body").map(spec => spec.name);
   const pathArgNames = _.filter(spec.parameters, (spec) => spec.in === "path").map(spec => spec.name);
+  const queryArgNames = _.filter(spec.parameters, (spec) => spec.in === "query").map(spec => spec.name);
 
   const bodyArgs = _.pick(args, bodyArgNames);
   const pathArgs = _.pick(args, pathArgNames);
+  const queryArgs = _.pick(args, queryArgNames);
+
+  const queryString = '?' + _.map(queryArgs, (v, k) => `${k}=${v}`).join('&');
   
   const url = path.split('/').map((part) => {
     const trimmed = _.trim(part);
@@ -163,7 +169,7 @@ const httpClient = (req, request) => {
     } else {
       return part;
     }
-  }).join('/');
+  }).join('/') + (queryArgNames.length ? queryString : '');
 
   console.log(`Constructed url '${url}', body: ${JSON.stringify(bodyArgs)}`);
   return new Promise((resolve, reject) => {
