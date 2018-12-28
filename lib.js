@@ -18,7 +18,7 @@ const checkType = (typeSpec, arg) => {
 };
 
 const lookupSchema = (swagger, schemaRef) => {
-  console.log(`Looking up ${schemaRef}`);
+  // console.log(`Looking up ${schemaRef}`);
   const schema = _.get(swagger, schemaRef.replace(/#./,'').replace('/','.'));
   if (!schema || !(schema.properties || schema.enum)) {
     throw new Error(`Schema ref missing: ${schemaRef}`);
