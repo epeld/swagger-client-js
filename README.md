@@ -58,3 +58,9 @@ const fs = require("fs");
 const request = require("request").defaults({baseUrl: "http://localhost:3000");
 const client = require("thisrepo").generateClient(JSON.parse(fs.readFileSync("swagger.json")), request);
 ```
+
+## Code Structure
+
+The file *lib.js* contains the library code. It exports the function *generateClient()* which is the public API of the library.
+
+The file *main.js* is an example application illustrating how the library can be used.
