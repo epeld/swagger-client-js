@@ -180,7 +180,7 @@ const httpClient = (req, request) => {
         if (_.has(spec, 'responses') && !_.includes(String(response.statusCode), spec.responses)) {
           console.error(`Status from (${method}) ${url} was ${response.statusCode} which is not in its list of responses`);
         }
-        resolve(body);
+        resolve(response);
       }
     });
   });
