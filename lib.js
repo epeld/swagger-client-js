@@ -49,7 +49,7 @@ const checkSchema = (swagger, schemaRef, arg) => {
   }
   const missing = _.filter(schema.required, f => !_.has(arg, f));
   if (missing.length) {
-    return `Expected an object (${schemaRef}). But field(s) "${missing.join('", "')}" are missing`;
+    return `Expected ${schemaRef} but schema not satisfied. Field(s) "${missing.join('", "')}" are missing`;
   }
   const errors = _.compact(
     _.map(
@@ -111,7 +111,12 @@ const checkArg = (swagger, argSpec, arg) => {
     if (!argSpec.schema['$ref']) {
       throw new Error(`Bad schema ref in ${JSON.stringify(argSpec)}`);
     }
-    return checkSchema(swagger, argSpec.schema['$ref'], arg);
+    const error = checkSchema(swagger, argSpec.schema['$ref'], arg);;
+    if (error) {
+      return `"${argSpec.name}" - ${error}`;
+    } else {
+      return null;
+    }
   }
   if (argSpec.type) {
     return checkType(argSpec.type, arg);
@@ -136,7 +141,7 @@ const httpClient = (req, request) => {
 
   const errors = _.compact(_.map(spec.parameters, (p) => checkArg(swagger, p, args[p.name])));
   if (errors.length) {
-    return Promise.reject(`Errors in arg list: ${errors.join('\n')}`);
+    return Promise.reject(`Errors in arguments: ${errors.join('\n')}`);
   } else {
     // console.log('No argument Errors');
   }
