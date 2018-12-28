@@ -7,35 +7,21 @@ const fs = require("fs");
 const requestLib = require("request");
 const _ = require("lodash");
 
-const myswagger = JSON.parse(fs.readFileSync("swagger.json"));
+const myswagger = JSON.parse(fs.readFileSync("./samples/swagger.json"));
 
 const myreq = requestLib.defaults({baseUrl: 'http://localhost:3000'});
 
 const { generateClient } = require("./lib");
 
 
-const client = generateClient(myswagger);
-const x = {
-  body: {
-    externalId: "asd",
-    start: {
-      type: "sunrise"
-    },
-    dayOfWeek: []
-  }
-};
-//client.create_timer(x).then(console.log).catch(console.error);
-client.get_timer({timerId: "3", external: "true"}).then(console.log).catch(console.error);
+// Set up defaults for http agent
+const request = requestLib.defaults({baseUrl: 'http://localhost:6060'});
 
-// const x = {
-//   externalId: "1",
-//   start: {
-//     type: "time"
-//   },
-//   dayOfWeek: ["Mon"]
-// };
-// const err = checkSchema(myswagger, '#/definitions/CreateTimerRequest', x);
-// if (err) {
-//   console.error('\nError:');
-//   console.error(err);
-// }
+
+// Generate the client, passing in the configured request-object
+const client = generateClient(myswagger, request);
+
+
+// Make a call to add a pet
+const req = {body: {name: "Foobar", photoUrls: []}};
+client.add_pet(req, request).then(console.log).catch(console.error);
