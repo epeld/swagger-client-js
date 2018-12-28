@@ -9,6 +9,82 @@ const swagger = JSON.parse(fs.readFileSync("swagger.json"));
 
 const myreq = requestLib.defaults({baseUrl: 'http://localhost:3000'});
 
+const checkType = (typeSpec, arg) => {
+  if (_.isString(typeSpec)) {
+    // Special case: arrays
+    if (typeSpec === "array" && _.isArray(arg)) {
+      return null;
+    }
+    if (typeof arg !== typeSpec) {
+      return `Type mismatch. Expected ${typeSpec}. Was: ${typeof arg}`;
+    }
+  }
+  return null;
+};
+
+const lookupSchema = (swagger, schemaRef) => {
+  console.log(`Looking up ${schemaRef}`);
+  const schema = _.get(swagger, schemaRef.replace(/#./,'').replace('/','.'));
+  if (!schema || !(schema.properties || schema.enum)) {
+    throw new Error(`Schema ref missing: ${schemaRef}`);
+  }
+  return schema;
+};
+
+const checkSchema = (swagger, schemaRef, arg) => {
+  const schema = lookupSchema(swagger, schemaRef);
+  if (_.has(schema, 'enum')) {
+    if (_.includes(schema.enum, arg)) {
+      return null;
+    } else {
+      return `Expected ${arg} to be one of ${schema.enum.join(', ')}`;
+    }
+  }
+  // TODO checkEnum here
+  if (typeof arg !== "object") {
+    return `Expected an object (${schemaRef})`;
+  }
+  const missing = _.filter(schema.required, f => !_.has(arg, f));
+  if (missing.length) {
+    return `Expected an object (${schemaRef}). But field(s) "${missing.join('", "')}" are missing`;
+  }
+  const errors = _.compact(
+    _.map(
+      Object.keys(arg),
+      (f) => {
+        if (!_.has(schema.properties, f)) {
+          return `Superfluous field "${f}"`;
+        }
+        const field = arg[f];
+        const spec = schema.properties[f];
+        if (_.has(spec, 'type')) {
+          const e = checkType(spec.type, field);
+          if (e) {
+            return `Field "${f}" type error: ${e}`;
+          }
+          if (spec.type === "array" && spec.items) {
+            // TODO verify array match
+          }
+        } else if (_.has(spec, '$ref')) {
+          const ref = spec['$ref'];
+          const e = checkSchema(swagger, ref, field);
+          if (e) {
+            return `Field "${f}" sub-schema error: ${e}`;
+          }
+        } else {
+          return `Unknown field type ${schemaRef}:${f}`;
+        }
+        return null;
+      }
+    )
+  );
+  if (errors.length) {
+    return errors.join("\n");
+  } else {
+    return null;
+  }
+};
+
 const checkArg = (argSpec, arg) => {
   if (argSpec === undefined) {
     return `Superfluous argument: ${JSON.stringify(arg)}`;
@@ -23,6 +99,10 @@ const checkArg = (argSpec, arg) => {
       break;
 
     default:
+      if (argSpec.schema) {
+        // TODO look up schema
+        const schema = lookupSchema(argSpec.schema.ref);
+      }
       return `Unsupported argument type '${argSpec.type}'`;
     }
   }
@@ -90,7 +170,7 @@ const httpClient = (req, request) => {
  * @param swagger this is the swagger JSON-structure
  * @param request (optional) the http client to use. See request.defaults
  */
-export const generateClient = (swagger, request) => {
+const generateClient = (swagger, request) => {
   request = request || requestLib.defaults();
   const client = {};
   _.forEach(swagger.paths, (methods, path) => {
@@ -116,5 +196,18 @@ export const generateClient = (swagger, request) => {
 };
 
 
-const client = generateClient(swagger);
-client.get_timer('asd').then(console.log).catch(console.error);
+// const client = generateClient(swagger);
+// client.get_timer('asd').then(console.log).catch(console.error);
+
+const x = {
+  externalId: "1",
+  start: {
+    type: "time"
+  },
+  dayOfWeek: ["bar"]
+};
+const err = checkSchema(swagger, '#/definitions/CreateTimerRequest', x);
+if (err) {
+  console.error('\nError:');
+  console.error(err);
+}
