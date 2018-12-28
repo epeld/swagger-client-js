@@ -5,7 +5,7 @@ const decamelize = require("decamelize");
 const requestLib = require("request");
 const _ = require("lodash");
 
-const swagger = JSON.parse(fs.readFileSync("swagger.json"));
+const myswagger = JSON.parse(fs.readFileSync("swagger.json"));
 
 const myreq = requestLib.defaults({baseUrl: 'http://localhost:3000'});
 
@@ -87,6 +87,9 @@ const checkSchema = (swagger, schemaRef, arg) => {
           }
         } else if (_.has(spec, '$ref')) {
           const ref = spec['$ref'];
+          if (!ref) {
+            throw new Error(`Bad $ref in field "${field}"`);
+          }
           const e = checkSchema(swagger, ref, field);
           if (e) {
             return `Field "${f}" sub-schema error: ${e}`;
@@ -105,35 +108,25 @@ const checkSchema = (swagger, schemaRef, arg) => {
   }
 };
 
-const checkArg = (argSpec, arg) => {
+const checkArg = (swagger, argSpec, arg) => {
   if (argSpec === undefined) {
     return `Superfluous argument: ${JSON.stringify(arg)}`;
   }
-  // console.log(`Checking argument '${argSpec.name}'...`);
-  if (argSpec.required) {
-    switch(argSpec.type) {
-    case "string":
-      if (typeof arg !== "string") {
-        return `Argument ${argSpec.name} is not a string: ${arg}`;
-      }
-      break;
-
-    default:
-      if (argSpec.schema) {
-        // TODO look up schema
-        const schema = lookupSchema(argSpec.schema.ref);
-      }
-      return `Unsupported argument type '${argSpec.type}'`;
+  if (argSpec.schema) {
+    if (!argSpec.schema['$ref']) {
+      throw new Error(`Bad schema ref in ${JSON.stringify(argSpec)}`);
     }
+    return checkSchema(swagger, argSpec.schema['$ref'], arg);
   }
-
-  
-  return null;
+  if (argSpec.type) {
+    return checkType(argSpec.type, arg);
+  }
+  return `Unsupported argument type '${argSpec.type}'`;
 };
 
 const httpClient = (req, request) => {
-  const {method, args, path, spec} = req;
-  const errors = _.compact(_.zipWith(spec.parameters, args, checkArg));
+  const {method, args, path, spec, swagger} = req;
+  const errors = _.compact(_.zipWith(spec.parameters, args, (p, a) => checkArg(swagger, p, a)));
   if (errors.length) {
     return Promise.reject(`Errors in arg list: ${errors.join('\n')}`);
   } else {
@@ -204,7 +197,7 @@ const generateClient = (swagger, request) => {
         }
         console.log(name, 'called with args:', JSON.stringify(args));
         const req = {
-          method, args, path, spec
+          method, args, path, spec, swagger
         };
         return httpClient(req, request);
       };
