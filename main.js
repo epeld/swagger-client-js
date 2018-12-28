@@ -31,16 +31,24 @@ const lookupSchema = (swagger, schemaRef) => {
   return schema;
 };
 
+const checkEnum = (schema, arg) => {
+  if (_.includes(schema.enum, arg)) {
+    return null;
+  } else {
+    return `Expected ${arg} to be one of ${schema.enum.join(', ')}`;
+  }
+};
+
 const checkSchema = (swagger, schemaRef, arg) => {
   const schema = lookupSchema(swagger, schemaRef);
   if (_.has(schema, 'enum')) {
-    if (_.includes(schema.enum, arg)) {
-      return null;
+    const e = checkEnum(schema, arg);
+    if (e) {
+      return e;
     } else {
-      return `Expected ${arg} to be one of ${schema.enum.join(', ')}`;
+      return null;
     }
   }
-  // TODO checkEnum here
   if (typeof arg !== "object") {
     return `Expected an object (${schemaRef})`;
   }
@@ -63,7 +71,19 @@ const checkSchema = (swagger, schemaRef, arg) => {
             return `Field "${f}" type error: ${e}`;
           }
           if (spec.type === "array" && spec.items) {
-            // TODO verify array match
+            const errors2 = _.compact(
+              _.map(field, (item, index) => {
+                const e2 = checkEnum(spec.items, item);
+                if (e2) {
+                  return `element ${index} error: ${e2}`;
+                } else {
+                  return null;
+                }
+              })
+            );
+            if (errors2.length) {
+              return `Field "${f}" item errors: ${errors2.join(', ')}"`;
+            }
           }
         } else if (_.has(spec, '$ref')) {
           const ref = spec['$ref'];
@@ -204,7 +224,7 @@ const x = {
   start: {
     type: "time"
   },
-  dayOfWeek: ["bar"]
+  dayOfWeek: ["Mon"]
 };
 const err = checkSchema(swagger, '#/definitions/CreateTimerRequest', x);
 if (err) {
