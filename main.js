@@ -215,18 +215,28 @@ const generateClient = (swagger, request) => {
 };
 
 
-// const client = generateClient(swagger);
-// client.get_timer('asd').then(console.log).catch(console.error);
-
+const client = generateClient(myswagger);
 const x = {
-  externalId: "1",
-  start: {
-    type: "time"
-  },
-  dayOfWeek: ["Mon"]
+  body: {
+    externalId: "asd",
+    start: {
+      type: "sunrise"
+    },
+    dayOfWeek: []
+  }
 };
-const err = checkSchema(swagger, '#/definitions/CreateTimerRequest', x);
-if (err) {
-  console.error('\nError:');
-  console.error(err);
-}
+//client.create_timer(x).then(console.log).catch(console.error);
+client.get_timer({timerId: "3", external: "true"}).then(console.log).catch(console.error);
+
+// const x = {
+//   externalId: "1",
+//   start: {
+//     type: "time"
+//   },
+//   dayOfWeek: ["Mon"]
+// };
+// const err = checkSchema(myswagger, '#/definitions/CreateTimerRequest', x);
+// if (err) {
+//   console.error('\nError:');
+//   console.error(err);
+// }
