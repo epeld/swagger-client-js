@@ -1,16 +1,20 @@
 {
-  "name": "codegen",
+  "name": "swagger-client-nodejs",
   "version": "1.0.0",
-  "description": "Generate code from swagger spec",
-  "main": "main.js",
+  "description": "Generate runtime client from swagger spec",
+  "main": "lib.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Erik Peldan",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "dependencies": {
     "decamelize": "^2.0.0",
     "lodash": "^4.17.11",
     "request": "^2.88.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:epeld/swagger-client-js.git"
   }
 }
