@@ -143,7 +143,7 @@ const httpClient = (req, request) => {
   if (errors.length) {
     return Promise.reject(`Errors in arg list: ${errors.join('\n')}`);
   } else {
-    console.log('No argument Errors');
+    // console.log('No argument Errors');
   }
 
   const bodyArgNames = _.filter(spec.parameters, (spec) => spec.in === "body").map(spec => spec.name);
