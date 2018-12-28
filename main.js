@@ -126,28 +126,30 @@ const checkArg = (swagger, argSpec, arg) => {
 
 const httpClient = (req, request) => {
   const {method, args, path, spec, swagger} = req;
-  const errors = _.compact(_.zipWith(spec.parameters, args, (p, a) => checkArg(swagger, p, a)));
+  const params = _.keyBy(spec.parameters, 'name');
+
+  const missing = _.difference(Object.keys(params), Object.keys(args));
+  const superfluous = _.difference(Object.keys(args), Object.keys(params));
+  if (missing.length) {
+    return Promise.reject(`Missing arguments: "${missing.join('", "')}"`);
+  }
+  if (superfluous.length) {
+    return Promise.reject(`Superfluous arguments: "${superfluous.join('", "')}"`);
+  }
+
+  const errors = _.compact(_.map(spec.parameters, (p) => checkArg(swagger, p, args[p.name])));
   if (errors.length) {
     return Promise.reject(`Errors in arg list: ${errors.join('\n')}`);
   } else {
     console.log('No argument Errors');
   }
 
-  const bodyArgs =
-        _.fromPairs(
-          _.compact(
-            _.zipWith(spec.parameters, args,
-                      (p, a) => (p && p.in === "body") ? [p.name, a] : null)
-          )
-        );
-  const pathArgs =
-        _.fromPairs(
-          _.compact(
-            _.zipWith(spec.parameters, args,
-                      (p, a) => (p && p.in === "path") ? [p.name, a] : null)
-          )
-        );
- 
+  const bodyArgNames = _.filter(spec.parameters, (spec) => spec.in === "body").map(spec => spec.name);
+  const pathArgNames = _.filter(spec.parameters, (spec) => spec.in === "path").map(spec => spec.name);
+
+  const bodyArgs = _.pick(args, bodyArgNames);
+  const pathArgs = _.pick(args, pathArgNames);
+  
   const url = path.split('/').map((part) => {
     const trimmed = _.trim(part);
     if (_.startsWith(trimmed, '{') &&
@@ -190,11 +192,7 @@ const generateClient = (swagger, request) => {
     _.forEach(methods, (spec, method) => {
       const {operationId} = spec;
       const name = decamelize(operationId);
-      const f = function() {
-        const args = [];
-        for(let i = 0; i < arguments.length; i++) {
-          args.push(arguments[i]);
-        }
+      const f = function(args) {
         console.log(name, 'called with args:', JSON.stringify(args));
         const req = {
           method, args, path, spec, swagger
