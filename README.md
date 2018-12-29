@@ -20,8 +20,8 @@ const client = require("thisrepo").generateClient(JSON.parse(fs.readFileSync("sw
 Once the client has been created you can call any endpoint described in your swagger spec.
 
 For each endpoint there will be a corresponding method on the client-object. The name of each method
-is the *"decamelized" operationId* of the corresponding endpoint. For example, an endpoint with the
-operationId "getFoo" will yield a method "get_foo".
+is the same as the *operationId* of the corresponding endpoint. For example, an endpoint with the
+operationId "getFoo" will yield a method "getFoo".
 
 #### Parameters
 There are different types of parameters that an endpoint might require.
@@ -40,7 +40,7 @@ For example, if the endpoint "getFoo" (mentioned above) required these three par
 then it can (*must*, unless the parameters are optional) be invoked like so:
 
 ```
-client.get_foo({bar: "mybar", baz: "mybaz", quux: 1234})
+client.getFoo({bar: "mybar", baz: "mybaz", quux: 1234})
 ```
 
 Note that, if you don't supply all required arguments an error will be returned explaining what is missing.

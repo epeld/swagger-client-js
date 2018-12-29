@@ -9,7 +9,6 @@
   "author": "Erik Peldan",
   "license": "MIT",
   "dependencies": {
-    "decamelize": "^2.0.0",
     "lodash": "^4.17.11",
     "request": "^2.88.0"
   },

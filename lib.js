@@ -1,6 +1,5 @@
 const fs = require("fs");
 
-const decamelize = require("decamelize");
 const requestLib = require("request");
 const _ = require("lodash");
 
@@ -199,7 +198,7 @@ const generateClient = (swagger, request) => {
   _.forEach(swagger.paths, (methods, path) => {
     _.forEach(methods, (spec, method) => {
       const {operationId} = spec;
-      const name = decamelize(operationId);
+      const name = operationId;
       const f = function(args) {
         console.log(name, 'called with args:', JSON.stringify(args));
         const req = {

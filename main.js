@@ -24,4 +24,4 @@ const client = generateClient(myswagger, request);
 
 // Make a call to add a pet
 const req = {body: {name: "Foobar", photoUrls: []}};
-client.add_pet(req, request).then(console.log).catch(console.error);
+client.addPet(req, request).then(console.log).catch(console.error);
